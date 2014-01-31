@@ -11,6 +11,11 @@ class Graph:
         return str(self.adjacencyMatrix)
 
     #Build the INITIAL arrangement graph, with all genes oriented the same way
+    #Matrix of the shape [0, 0, 0, ..., 0, 0, 0]
+    #                    [0, 0, 2, ..., 0, 0, 0]
+    #                    [0, 2, 0, ..., 0, 0, 0]
+    #                     .                   .
+    #                     .                   . etc
     def chromToGraph(self,chrom): 
         n=chrom.nbGen
         adjMat=np.zeros((2*n,2*n),dtype=np.int8)
@@ -24,14 +29,14 @@ class Graph:
 
         #find the vertex wich share an edge with the specified one in the nowdays arrangement, if it exists
         def findLinked(a,adjVec):
-            alinks=np.flatnonzero(adjVec).tolist()
+            alinks=np.flatnonzero(adjVec).tolist() # all neighbourgs of vertex a
             a2=None
-            if len(alinks)>1:
-                alinks.remove(a+2*(a%2)-1)
+            if len(alinks)>1:# if vertex a is linked to several (i.e. two) vertices
+                alinks.remove(a+2*(a%2)-1) # Don't take account of the one from the ancestral genom
                 a2=alinks[0]
-            elif len(alinks)==1:
+            elif len(alinks)==1:# and if it's linked to only one, 
                 a2=alinks[0]
-                if adjVec[a2]==1 and a2==(a+2*(a%2)-1):
+                if adjVec[a2]==1 and a2==(a+2*(a%2)-1):#check it's not the link from the ancestral genom
                     a2=None
             return a2
 
@@ -59,7 +64,7 @@ class Graph:
     #return a list of connected sub-graphs of the graph
     def groupAdjacencyMatrix(self):
 
-        #return the maximal connected subgraphs the vertex i belongs to
+        #return the maximal connected subgraphs the vertex i belongs to (BFS)
         def buildGroup(self,i):
             group=set([i])
             toAddToGroup=set(np.flatnonzero(self.adjacencyMatrix[i]))
@@ -87,6 +92,7 @@ class Graph:
                 connectedPaths.append(group)
 
         return connectedPaths
+
     #compute the minimum number of inversions necessary to come back to the ancestral shape of the genome
     def distance(self):
         #d=n-(c+i/2)
@@ -98,15 +104,16 @@ class Graph:
 
         groups = self.groupAdjacencyMatrix()
 
+        #thanks to the special structure of the graph, we know the subgraph can only be either a simple unbranched tree, including a single node, or a cycle.
         for group in groups:
             if len(group) == 1:
                 i+=1
             else:
-                sums=[np.sum(self.adjacencyMatrix[j]) for j in group]
-                if 1 in sums:
+                sums=[np.sum(self.adjacencyMatrix[j]) for j in group] #number of degrees of each vertex from the connected subgraph
+                if 1 in sums: #one of the vertex is of degree 1, so the subgraph is not a cycle
                     if len(sums)%2==1:
                         i+=1
-                else:
+                else: #it's a cycle.
                     c+=1
 
         return n-(c+i/2)
